@@ -1,50 +1,242 @@
 ---
-import { getEmDashCollection, getSiteSettings } from "emdash";
-import { Image } from "emdash/ui";
+import { getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
 import { resolveStarterSiteIdentity } from "../utils/site-identity";
+import memorial from "../data/memorial.json";
 
-const { entries: posts, cacheHint } = await getEmDashCollection("posts", {
-	orderBy: { published_at: "desc" },
-	limit: 10,
-});
-const { siteTitle, siteTagline } = resolveStarterSiteIdentity(
-	await getSiteSettings(),
-);
-if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+const { siteTitle } = resolveStarterSiteIdentity(await getSiteSettings());
+
+// Photos live in the EmDash media library (R2). Resolve each storage key to its public URL.
+const mediaUrl = (key: string) =>
+	Astro.locals.emdash?.getPublicMediaUrl?.(key) ?? `/_emdash/api/media/file/${key}`;
+
+const portrait = { src: mediaUrl(memorial.portrait.key), alt: memorial.portrait.alt };
+const photos = memorial.gallery.map((p) => ({ src: mediaUrl(p.key), alt: p.alt }));
+
+const sound = (track: string) =>
+	`https://w.soundcloud.com/player/?url=${encodeURIComponent(
+		`https://soundcloud.com/maxinthemix/${track}`,
+	)}&visual=true&show_comments=false`;
+
+const recordings = [
+	{
+		track: "musicmarketingpioneerdavid-cato",
+		title:
+			"Red Carpet Radio Atlanta presents Music Marketing Pioneer David Cato Wednesday September 16, 2020",
+	},
+	{
+		track: "music-industry-pioneer-david-cato-wednesday-january-13th",
+		title:
+			"Red Carpet Radio Atlanta presents Music Industry Pioneer, David Cato Wednesday January 13th, 2021",
+	},
+];
+
+const description =
+	"David Cato, passed peacefully in his sleep in the early hours Friday morning, January 31, 2025, at his home in Atlanta Georgia. Share your thoughts, stories or images in the celebration of David’s life.";
 ---
 
-<Base title={siteTitle} description={siteTagline}>
-	<h1>Recent Posts</h1>
+<Base title={`Music Marketing Pioneer — ${siteTitle}`} description={description} image={portrait.src}>
+	<main class="memorial">
+		<section class="intro">
+			<img class="portrait" src={portrait.src} alt={portrait.alt} width="1362" height="1860" />
+			<div class="intro-text">
+				<h1 class="visually-hidden">David Cato</h1>
+				<p class="tribute">
+					David Cato, passed peacefully in his sleep in the early hours Friday morning, January 31,
+					2025, at his home in Atlanta Georgia. Please share your thoughts, stories or images in
+					the celebration of David’s life.
+				</p>
+				<a class="button" href="#photos">PHOTO</a>
+			</div>
+		</section>
 
-	{
-		posts.length === 0 ? (
-			<p>
-				No posts yet. <a href="/_emdash/admin/content/posts/new">Create one</a>.
-			</p>
-		) : (
-			<ul>
-				{posts.map((post) => (
-					<li>
-						<a href={`/posts/${post.id}`}>
-							{post.data.featured_image && (
-								<div {...post.edit.featured_image}><Image image={post.data.featured_image} /></div>
-							)}
-							<h2 {...post.edit.title}>{post.data.title}</h2>
-						</a>
-						{post.data.excerpt && <p {...post.edit.excerpt}>{post.data.excerpt}</p>}
-						{post.data.publishedAt && (
-							<time datetime={post.data.publishedAt.toISOString()}>
-								{post.data.publishedAt.toLocaleDateString("en-US", {
-									year: "numeric",
-									month: "long",
-									day: "numeric",
-								})}
-							</time>
-						)}
-					</li>
-				))}
-			</ul>
-		)
-	}
+		<section class="recordings" aria-label="Recordings">
+			{
+				recordings.map((r) => (
+					<figure>
+						<iframe
+							src={sound(r.track)}
+							title={r.title}
+							loading="lazy"
+							allow="autoplay"
+							frameborder="0"
+						/>
+						<figcaption>
+							<a href="https://soundcloud.com/maxinthemix">audio library</a> ·{" "}
+							<a href={`https://soundcloud.com/maxinthemix/${r.track}`}>{r.title}</a>
+						</figcaption>
+					</figure>
+				))
+			}
+		</section>
+
+		<section id="photos" class="gallery" aria-label="Photos">
+			{
+				photos.map((p) => (
+					<a href={p.src} class="tile">
+						<img src={p.src} alt={p.alt} loading="lazy" decoding="async" />
+					</a>
+				))
+			}
+		</section>
+	</main>
+
+	<footer class="memorial-footer">© {new Date().getFullYear()} David Cato.</footer>
 </Base>
+
+<style is:global>
+	@import url("https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600&display=swap");
+
+	:root {
+		--ink: #333333;
+		--muted: #777777;
+		--line: #eeeeee;
+		--paper: #ffffff;
+	}
+
+	body {
+		margin: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: "Dosis", system-ui, sans-serif;
+	}
+
+	body > header {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 24px 20px;
+		font-size: 22px;
+		letter-spacing: 0.04em;
+	}
+
+	body > header a {
+		color: var(--ink);
+		text-decoration: none;
+	}
+</style>
+
+<style>
+	.memorial {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 20px 60px;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+
+	.intro {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 20px;
+		align-items: start;
+		margin-bottom: 20px;
+	}
+
+	.portrait {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.tribute {
+		font-size: 23px;
+		line-height: 1.6;
+		margin: 0 0 24px;
+	}
+
+	.button {
+		display: inline-block;
+		background: #000;
+		color: #fff;
+		padding: 10px 20px;
+		letter-spacing: 0.08em;
+		text-decoration: none;
+	}
+
+	.button:hover {
+		background: var(--ink);
+	}
+
+	.recordings {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 20px;
+		margin-bottom: 80px;
+	}
+
+	.recordings figure {
+		margin: 0;
+	}
+
+	.recordings iframe {
+		width: 100%;
+		height: 450px;
+		border: 0;
+		display: block;
+	}
+
+	.recordings figcaption {
+		margin-top: 8px;
+		font-size: 11px;
+		color: var(--muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.recordings figcaption a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.gallery {
+		column-count: 3;
+		column-gap: 20px;
+	}
+
+	.tile {
+		display: block;
+		margin-bottom: 20px;
+		break-inside: avoid;
+	}
+
+	.tile img {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.memorial-footer {
+		text-align: center;
+		color: var(--muted);
+		padding: 30px 20px;
+		border-top: 1px solid var(--line);
+	}
+
+	@media (max-width: 720px) {
+		.intro,
+		.recordings {
+			grid-template-columns: 1fr;
+		}
+
+		.tribute {
+			font-size: 19px;
+		}
+
+		.gallery {
+			column-count: 2;
+			column-gap: 12px;
+		}
+
+		.tile {
+			margin-bottom: 12px;
+		}
+	}
+</style>
