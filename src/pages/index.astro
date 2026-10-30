@@ -46,7 +46,6 @@ const description =
 					2025, at his home in Atlanta Georgia. Please share your thoughts, stories or images in
 					the celebration of David’s life.
 				</p>
-				<a class="button" href="#photos">PHOTO</a>
 			</div>
 		</section>
 
@@ -102,6 +101,7 @@ const description =
 	}
 
 	body > header {
+		text-align: center;
 		max-width: 1000px;
 		margin: 0 auto;
 		padding: 24px 20px;
@@ -132,36 +132,30 @@ const description =
 	}
 
 	.intro {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 20px;
-		align-items: start;
-		margin-bottom: 20px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		margin-bottom: 60px;
 	}
 
 	.portrait {
 		width: 100%;
+		max-width: 480px;
 		height: auto;
 		display: block;
+		margin: 0 auto;
+	}
+
+	.intro-text {
+		max-width: 680px;
+		margin-top: 28px;
 	}
 
 	.tribute {
 		font-size: 23px;
 		line-height: 1.6;
-		margin: 0 0 24px;
-	}
-
-	.button {
-		display: inline-block;
-		background: #000;
-		color: #fff;
-		padding: 10px 20px;
-		letter-spacing: 0.08em;
-		text-decoration: none;
-	}
-
-	.button:hover {
-		background: var(--ink);
+		margin: 0;
 	}
 
 	.recordings {
@@ -221,7 +215,6 @@ const description =
 	}
 
 	@media (max-width: 720px) {
-		.intro,
 		.recordings {
 			grid-template-columns: 1fr;
 		}
