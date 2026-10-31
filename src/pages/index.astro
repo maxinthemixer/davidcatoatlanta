@@ -13,21 +13,23 @@ const mediaUrl = (key: string) =>
 const portrait = { src: mediaUrl(memorial.portrait.key), alt: memorial.portrait.alt };
 const photos = memorial.gallery.map((p) => ({ src: mediaUrl(p.key), alt: p.alt }));
 
-const sound = (track: string) =>
-	`https://w.soundcloud.com/player/?url=${encodeURIComponent(
-		`https://soundcloud.com/maxinthemix/${track}`,
-	)}&visual=true&show_comments=false`;
-
+// Radio recordings, served as static files from public/audio. Left to right.
 const recordings = [
 	{
-		track: "musicmarketingpioneerdavid-cato",
-		title:
-			"Red Carpet Radio Atlanta presents Music Marketing Pioneer David Cato Wednesday September 16, 2020",
+		audio: "/audio/cato-2020-09-16.mp3",
+		poster: "/audio/cato-2020-09-16.jpg",
+		posterAlt: "Red Carpet Radio ATL presents Music Marketing Pioneer David Cato with Robbie Ray",
+		title: "Music Marketing Pioneer David Cato",
+		date: "Wednesday, September 16, 2020",
+		length: "44 min",
 	},
 	{
-		track: "music-industry-pioneer-david-cato-wednesday-january-13th",
-		title:
-			"Red Carpet Radio Atlanta presents Music Industry Pioneer, David Cato Wednesday January 13th, 2021",
+		audio: "/audio/red-carpet-2021-01-13.mp3",
+		poster: "/audio/red-carpet-2021-01-13.jpg",
+		posterAlt: "Red Carpet Radio ATL presents 70s 80s 90s Music and Conversation with David Cato",
+		title: "70’s 80’s 90’s Music and Conversation with David Cato",
+		date: "Wednesday, January 13, 2021",
+		length: "29 min",
 	},
 ];
 
@@ -52,18 +54,16 @@ const description =
 		<section class="recordings" aria-label="Recordings">
 			{
 				recordings.map((r) => (
-					<figure>
-						<iframe
-							src={sound(r.track)}
-							title={r.title}
-							loading="lazy"
-							allow="autoplay"
-							frameborder="0"
-						/>
+					<figure class="recording">
+						<img class="cover" src={r.poster} alt={r.posterAlt} width="500" height="500" loading="lazy" />
 						<figcaption>
-							<a href="https://soundcloud.com/maxinthemix">audio library</a> ·{" "}
-							<a href={`https://soundcloud.com/maxinthemix/${r.track}`}>{r.title}</a>
+							<span class="show">Red Carpet Radio Atlanta</span>
+							<span class="episode">{r.title}</span>
+							<span class="meta">{r.date} · {r.length}</span>
 						</figcaption>
+						<audio controls preload="none" src={r.audio} title={r.title}>
+							<a href={r.audio}>Download the recording</a>
+						</audio>
 					</figure>
 				))
 			}
@@ -71,17 +71,92 @@ const description =
 
 		<section id="photos" class="gallery" aria-label="Photos">
 			{
-				photos.map((p) => (
-					<a href={p.src} class="tile">
+				photos.map((p, i) => (
+					<a href={p.src} class="tile" data-index={i}>
 						<img src={p.src} alt={p.alt} loading="lazy" decoding="async" />
 					</a>
 				))
 			}
 		</section>
+
+		<dialog class="lightbox" aria-label="Photo viewer">
+			<figure class="lb-stage">
+				<img class="lb-img" alt="" />
+			</figure>
+			<p class="lb-count" aria-live="polite"></p>
+			<button class="lb-btn lb-close" type="button" aria-label="Close">×</button>
+			<button class="lb-btn lb-prev" type="button" aria-label="Previous photo">‹</button>
+			<button class="lb-btn lb-next" type="button" aria-label="Next photo">›</button>
+		</dialog>
 	</main>
 
 	<footer class="memorial-footer">© {new Date().getFullYear()} David Cato.</footer>
 </Base>
+
+<script>
+	const dialog = document.querySelector<HTMLDialogElement>(".lightbox");
+	const tiles = [...document.querySelectorAll<HTMLAnchorElement>(".gallery .tile")];
+
+	if (dialog && tiles.length && typeof dialog.showModal === "function") {
+		const img = dialog.querySelector<HTMLImageElement>(".lb-img")!;
+		const count = dialog.querySelector<HTMLElement>(".lb-count")!;
+		const photos = tiles.map((t) => ({ src: t.href, alt: t.querySelector("img")?.alt ?? "" }));
+		let index = 0;
+
+		const preload = (i: number) => {
+			const p = photos[(i + photos.length) % photos.length];
+			if (p) new Image().src = p.src;
+		};
+
+		const show = (i: number) => {
+			index = (i + photos.length) % photos.length;
+			img.classList.remove("is-ready");
+			img.onload = () => img.classList.add("is-ready");
+			img.src = photos[index].src;
+			img.alt = photos[index].alt;
+			count.textContent = `${index + 1} / ${photos.length}`;
+			preload(index + 1);
+			preload(index - 1);
+		};
+
+		tiles.forEach((tile, i) =>
+			tile.addEventListener("click", (e) => {
+				e.preventDefault();
+				show(i);
+				dialog.showModal();
+				document.documentElement.classList.add("lb-open");
+			}),
+		);
+
+		dialog.addEventListener("close", () => {
+			document.documentElement.classList.remove("lb-open");
+			tiles[index]?.focus({ preventScroll: true });
+		});
+
+		dialog.querySelector(".lb-close")!.addEventListener("click", () => dialog.close());
+		dialog.querySelector(".lb-prev")!.addEventListener("click", () => show(index - 1));
+		dialog.querySelector(".lb-next")!.addEventListener("click", () => show(index + 1));
+
+		// Click on the dark background (not the photo or buttons) closes the viewer.
+		dialog.addEventListener("click", (e) => {
+			const t = e.target as HTMLElement;
+			if (t === dialog || t.classList.contains("lb-stage")) dialog.close();
+		});
+
+		dialog.addEventListener("keydown", (e) => {
+			if (e.key === "ArrowLeft") show(index - 1);
+			if (e.key === "ArrowRight") show(index + 1);
+		});
+
+		// Swipe left / right on touch screens.
+		let startX = 0;
+		dialog.addEventListener("touchstart", (e) => (startX = e.touches[0].clientX), { passive: true });
+		dialog.addEventListener("touchend", (e) => {
+			const dx = e.changedTouches[0].clientX - startX;
+			if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+		});
+	}
+</script>
 
 <style is:global>
 	@import url("https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600&display=swap");
@@ -161,33 +236,53 @@ const description =
 	.recordings {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 20px;
+		gap: 28px;
 		margin-bottom: 80px;
 	}
 
-	.recordings figure {
+	.recording {
 		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
 	}
 
-	.recordings iframe {
+	.cover {
 		width: 100%;
-		height: 450px;
-		border: 0;
+		height: auto;
+		aspect-ratio: 1;
+		object-fit: cover;
 		display: block;
 	}
 
-	.recordings figcaption {
-		margin-top: 8px;
-		font-size: 11px;
-		color: var(--muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+	.recording figcaption {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		text-align: center;
 	}
 
-	.recordings figcaption a {
-		color: inherit;
-		text-decoration: none;
+	.show {
+		font-size: 12px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.episode {
+		font-size: 19px;
+		font-weight: 500;
+		line-height: 1.35;
+	}
+
+	.meta {
+		font-size: 14px;
+		color: var(--muted);
+	}
+
+	.recording audio {
+		width: 100%;
+		margin-top: auto;
 	}
 
 	.gallery {
@@ -199,12 +294,112 @@ const description =
 		display: block;
 		margin-bottom: 20px;
 		break-inside: avoid;
+		cursor: zoom-in;
 	}
 
 	.tile img {
 		width: 100%;
 		height: auto;
 		display: block;
+		transition: opacity 0.2s ease;
+	}
+
+	.tile:hover img,
+	.tile:focus-visible img {
+		opacity: 0.85;
+	}
+
+	.lightbox {
+		width: 100vw;
+		height: 100dvh;
+		max-width: none;
+		max-height: none;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: rgba(10, 10, 10, 0.94);
+		color: #fff;
+		overscroll-behavior: contain;
+	}
+
+	.lightbox::backdrop {
+		background: rgba(10, 10, 10, 0.94);
+	}
+
+	.lb-stage {
+		margin: 0;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 56px 72px;
+		box-sizing: border-box;
+	}
+
+	.lb-img {
+		max-width: 100%;
+		max-height: 100%;
+		object-fit: contain;
+		opacity: 0;
+		transition: opacity 0.2s ease;
+		user-select: none;
+	}
+
+	.lb-img.is-ready {
+		opacity: 1;
+	}
+
+	.lb-count {
+		position: absolute;
+		top: 16px;
+		left: 20px;
+		margin: 0;
+		font-size: 14px;
+		letter-spacing: 0.08em;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.lb-btn {
+		position: absolute;
+		background: transparent;
+		border: 0;
+		color: #fff;
+		font-family: inherit;
+		line-height: 1;
+		cursor: pointer;
+		opacity: 0.75;
+		padding: 8px 14px;
+	}
+
+	.lb-btn:hover,
+	.lb-btn:focus-visible {
+		opacity: 1;
+	}
+
+	.lb-close {
+		top: 6px;
+		right: 8px;
+		font-size: 40px;
+	}
+
+	.lb-prev,
+	.lb-next {
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 56px;
+	}
+
+	.lb-prev {
+		left: 6px;
+	}
+
+	.lb-next {
+		right: 6px;
+	}
+
+	:global(html.lb-open) {
+		overflow: hidden;
 	}
 
 	.memorial-footer {
@@ -230,6 +425,18 @@ const description =
 
 		.tile {
 			margin-bottom: 12px;
+		}
+
+		.lb-stage {
+			padding: 56px 8px;
+		}
+
+		.lb-prev,
+		.lb-next {
+			top: auto;
+			bottom: 12px;
+			transform: none;
+			font-size: 48px;
 		}
 	}
 </style>
