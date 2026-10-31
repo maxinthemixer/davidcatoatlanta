@@ -13,10 +13,10 @@ const mediaUrl = (key: string) =>
 const portrait = { src: mediaUrl(memorial.portrait.key), alt: memorial.portrait.alt };
 const photos = memorial.gallery.map((p) => ({ src: mediaUrl(p.key), alt: p.alt }));
 
-// Radio recordings, served as static files from public/audio. Left to right.
+// Radio recordings live in the EmDash media library (R2), which supports seeking. Posters are in public/audio. Left to right.
 const recordings = [
 	{
-		audio: "/audio/cato-2020-09-16.mp3",
+		audio: mediaUrl("01M689THF7R47TWRBN4JNYSAG8.01M689V9F78F56EHR76357D5VC.mp3"),
 		poster: "/audio/cato-2020-09-16.jpg",
 		posterAlt: "Red Carpet Radio ATL presents Music Marketing Pioneer David Cato with Robbie Ray",
 		title: "Music Marketing Pioneer David Cato",
@@ -24,7 +24,7 @@ const recordings = [
 		length: "44 min",
 	},
 	{
-		audio: "/audio/red-carpet-2021-01-13.mp3",
+		audio: mediaUrl("01M689VF44V2MJWMVCN72F0W9Y.01M689VXSWJC6J8JWBBKRH95KA.mp3"),
 		poster: "/audio/red-carpet-2021-01-13.jpg",
 		posterAlt: "Red Carpet Radio ATL presents 70s 80s 90s Music and Conversation with David Cato",
 		title: "70’s 80’s 90’s Music and Conversation with David Cato",
@@ -61,7 +61,7 @@ const description =
 							<span class="episode">{r.title}</span>
 							<span class="meta">{r.date} · {r.length}</span>
 						</figcaption>
-						<audio controls preload="none" src={r.audio} title={r.title}>
+						<audio controls preload="metadata" src={r.audio} title={r.title}>
 							<a href={r.audio}>Download the recording</a>
 						</audio>
 					</figure>
